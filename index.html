@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Shraddha Kulkarni, Java backend developer: Spring Boot, Kafka, microservices, AWS and Spring AI.">
+<title>Shraddha Kulkarni</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+html,body{margin:0}
+/* Layout: an event log. Hero = a live-looking Kafka topic; the page reads top-down like consumed offsets. */
+:root{
+  --bg:#F3F5F7; --surface:#FFFFFF; --ink:#13202B; --muted:#5A6874; --line:#D8DEE4;
+  --accent:#0E6E78; --accent-soft:#DDEFF0; --warn:#B8691A; --warn-soft:#F6E8D8;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F161C; --surface:#16212A; --ink:#E6EDF2; --muted:#93A3B0; --line:#2A3743;
+  --accent:#4FC1C9; --accent-soft:#16363A; --warn:#E3A35A; --warn-soft:#3A2C1C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F161C; --surface:#16212A; --ink:#E6EDF2; --muted:#93A3B0; --line:#2A3743;
+  --accent:#4FC1C9; --accent-soft:#16363A; --warn:#E3A35A; --warn-soft:#3A2C1C; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+h1,h2,h3{font-family:var(--display);line-height:1.1;text-wrap:balance;margin:0}
+.label{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+section{padding-block:56px;border-top:1px solid var(--line);display:grid;gap:28px}
+section > header{display:grid;gap:6px}
+h2{font-size:clamp(28px,4vw,38px);font-weight:700}
+
+/* nav */
+nav{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-block:20px}
+nav .mark{font-family:var(--mono);font-size:13px;color:var(--muted)}
+nav ul{display:flex;gap:18px;list-style:none;margin:0;padding:0;flex-wrap:wrap}
+nav a{color:var(--ink);text-decoration:none;font-size:14px;font-weight:500}
+nav a:hover{color:var(--accent)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.15fr 1fr;gap:48px;align-items:center;padding-block:40px 64px}
+.hero > *{min-width:0}
+.hero h1{font-size:clamp(44px,7vw,80px);font-weight:800;letter-spacing:-.02em}
+.hero .role{font-family:var(--display);font-size:clamp(20px,2.6vw,26px);font-weight:500;color:var(--accent);margin-top:12px}
+.hero p{max-width:58ch;color:var(--muted);margin:20px 0 0}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.badge{font-family:var(--mono);font-size:12.5px;padding:5px 10px;border-radius:4px;background:var(--accent-soft);color:var(--ink)}
+.badge.auth{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+.btn{font:600 15px var(--body);padding:11px 18px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);text-decoration:none;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn:hover{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+
+/* AI hero graphic */
+.ai{margin:0;position:relative;aspect-ratio:3/2;box-shadow:0 24px 50px -30px rgba(0,0,0,.5);max-width:100%;border-radius:16px;overflow:hidden;
+  background:radial-gradient(120% 90% at 70% 20%,var(--accent-soft),var(--surface) 65%);border:1px solid var(--line)}
+.ai img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.ai figcaption{position:absolute;left:16px;bottom:14px;right:16px;font-family:var(--mono);font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+
+/* topic visual */
+.topic{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;font-family:var(--mono);font-size:12px;box-shadow:0 18px 40px -28px rgba(0,0,0,.35)}
+.topic .head{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:14px;gap:8px;flex-wrap:wrap}
+.part{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.part .p{color:var(--muted)}
+.cells{display:flex;gap:4px;overflow:hidden}
+.cell{flex:1 0 auto;min-width:0;padding:6px 7px;border-radius:3px;background:var(--accent-soft);white-space:nowrap;animation:slide .6s ease both}
+.cell.ex{background:var(--warn-soft);color:var(--warn);font-weight:500}
+.cell small{display:block;color:var(--muted);font-size:10px}
+.topic .foot{margin-top:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+@keyframes slide{from{transform:translateX(12px)}to{transform:none}}
+@keyframes pulse{50%{opacity:.25}}
+
+/* featured */
+.feature{display:grid;gap:28px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:clamp(20px,4vw,36px)}
+.feature h3{font-size:clamp(24px,3vw,30px)}
+.feature .meta{display:flex;gap:12px;flex-wrap:wrap;align-items:baseline}
+.flow{overflow-x:auto}
+.flow-row{display:flex;align-items:stretch;gap:0;min-width:760px}
+.node{flex:1;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg);font-size:13px;line-height:1.35}
+.node b{display:block;font-family:var(--display);font-size:15px;margin-bottom:4px}
+.node span{color:var(--muted);font-family:var(--mono);font-size:11px}
+.node.own{border-color:var(--accent);background:var(--accent-soft)}
+.node.ai{border-style:dashed;border-color:var(--warn)}
+.arrow{align-self:center;width:28px;flex:0 0 28px;text-align:center;color:var(--muted);font-family:var(--mono)}
+.flow-note{font-size:13px;color:var(--muted);margin-top:10px}
+.decisions{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.decision{display:grid;gap:6px;align-content:start}
+.decision h4{margin:0;font-size:15px;font-weight:600}
+.decision p{margin:0;color:var(--muted);font-size:14.5px}
+.metric{font-family:var(--display);font-size:34px;font-weight:800;color:var(--accent);line-height:1}
+.stack{display:flex;flex-wrap:wrap;gap:6px}
+.stack span{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:4px;padding:3px 8px;color:var(--muted)}
+
+/* project grid */
+.projects{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.proj{display:grid;gap:12px;align-content:start;padding-top:16px;border-top:3px solid var(--ink)}
+.proj h3{font-size:20px}
+.proj ul{margin:0;padding-left:18px;color:var(--muted);font-size:14.5px;display:grid;gap:6px}
+
+/* skills */
+.skills{display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px}
+.skill{display:grid;grid-template-columns:150px 1fr;gap:16px;padding-block:12px;border-bottom:1px solid var(--line)}
+.skill dt{font-weight:600;font-size:14px}
+.skill dd{margin:0;color:var(--muted);font-size:14.5px}
+
+/* journey */
+.journey{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.journey > li{display:grid;grid-template-columns:150px 1fr;gap:24px;padding-block:18px;border-bottom:1px solid var(--line)}
+.journey .when{font-family:var(--mono);font-size:13px;color:var(--accent);font-variant-numeric:tabular-nums}
+.journey h3{font-size:19px;margin-bottom:4px}
+.journey .where{color:var(--muted);font-size:14px;margin-bottom:8px}
+.journey p,.journey ul{margin:0;color:var(--muted);font-size:14.5px;max-width:68ch}
+.journey ul{padding-left:18px;display:grid;gap:4px}
+
+/* publication */
+.pub{display:grid;gap:6px;padding:20px 24px;border-left:4px solid var(--warn);background:var(--surface);border-radius:0 8px 8px 0}
+.pub h3{font-size:clamp(20px,2.6vw,24px)}
+.pub p{margin:0;color:var(--muted);font-size:14.5px;max-width:60ch}
+
+/* teaching callout */
+.edge{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.edge div{display:grid;gap:6px;align-content:start}
+.edge h4{margin:0;font-size:16px}
+.edge p{margin:0;color:var(--muted);font-size:14.5px}
+
+/* contact */
+.contact{background:var(--ink);color:var(--bg);border-radius:12px;padding:clamp(24px,5vw,48px);display:grid;gap:20px}
+.contact h2{color:var(--bg)}
+.contact p{margin:0;max-width:56ch;opacity:.8}
+.rowc{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.addr{font-family:var(--mono);font-size:15px;user-select:all;padding:10px 14px;border:1px solid rgba(127,127,127,.45);border-radius:6px}
+.contact .btn{background:var(--bg);color:var(--ink);border-color:var(--bg)}
+.contact .btn.ghost{background:transparent;color:var(--bg)}
+.toast{font-size:13px;opacity:.85}
+footer{padding-block:28px 40px;color:var(--muted);font-size:13px;font-family:var(--mono)}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;gap:32px}
+  .projects,.edge{grid-template-columns:1fr}
+  .skills{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  .skill,.journey > li{grid-template-columns:1fr;gap:4px}
+  nav ul{gap:12px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <span class="mark">shraddha.kulkarni</span>
+    <ul>
+      <li><a href="#work">Work</a></li>
+      <li><a href="#skills">Skills</a></li>
+      <li><a href="#journey">Journey</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <h1>Shraddha Kulkarni</h1>
+      <div class="role">Java Backend Developer</div>
+      <p>I build event-driven backend systems with Spring Boot, Kafka and AWS. Before moving into development full time, I spent seven years as a computer engineering professor teaching Java, databases and computer security. I hold a US Master's in Software Engineering with an AI specialization.</p>
+      <div class="badges">
+        <span class="badge">Spring Boot</span><span class="badge">Kafka</span><span class="badge">Debezium CDC</span>
+        <span class="badge">AWS</span><span class="badge">Kubernetes</span><span class="badge">Spring AI</span>
+        <span class="badge auth">US work authorized · no sponsorship needed</span>
+      </div>
+      <div class="cta">
+        <a class="btn" href="#work">See my work</a>
+        <a class="btn ghost" href="#contact">Get in touch</a>
+      </div>
+    </div>
+
+    <figure class="ai">
+      <img src="hero.jpg" alt="A developer's desk at night: a laptop showing a Java UserService class in an IDE, Java books, and a coffee mug" width="1400" height="933">
+    </figure>
+  </div>
+
+  <section id="work">
+    <header><span class="label">Featured project</span><h2>Event-Driven Shipment Tracking Platform</h2></header>
+
+    <div class="feature">
+      <div class="meta"><span class="label">Personal project · 2026 – present</span></div>
+      <p style="margin:0;max-width:68ch">Migrated a monolithic shipment-tracking application to real-time, event-driven microservices. I owned the Shipment Service and the Shipment Exception Service, plus the reconciliation that made a safe cutover possible.</p>
+
+      <div class="flow" role="img" aria-label="Data flow: monolith database to Debezium and Kafka Connect, to Shipment Service, to Kafka topic, to Shipment Exception Service, to asynchronous AI summary">
+        <div class="flow-row">
+          <div class="node"><b>Monolith DB</b><span>MySQL</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>Debezium</b><span>Kafka Connect CDC</span></div>
+          <div class="arrow">→</div>
+          <div class="node own"><b>Shipment Service</b><span>CDC → business events</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>Kafka topic</b><span>keyed by shipmentId</span></div>
+          <div class="arrow">→</div>
+          <div class="node own"><b>Exception Service</b><span>delay · misroute · damage</span></div>
+          <div class="arrow">→</div>
+          <div class="node ai"><b>AI summary</b><span>Spring AI + Claude, async</span></div>
+        </div>
+      </div>
+      <div class="flow-note">Highlighted boxes are the services I owned. Scroll sideways on small screens.</div>
+
+      <div class="decisions">
+        <div class="decision"><h4>Ordering without locks</h4><p>Events use the shipment ID as the partition key, and consumers are idempotent, so each shipment's events arrive in order and replays are safe.</p></div>
+        <div class="decision"><h4>A cutover you can trust</h4><p>A reconciliation job compared monolith and microservice outputs during a parallel run before traffic moved over.</p></div>
+        <div class="decision"><h4>AI that never blocks</h4><p>Exception summaries are generated asynchronously with Spring AI and Claude, so the pipeline keeps flowing if the model is slow.</p></div>
+        <div class="decision"><span class="metric">−30%</span><h4>p95 API latency</h4><p>Measured in load testing after fixing N+1 queries with @EntityGraph and adding pagination and indexes.</p></div>
+      </div>
+
+      <div class="stack"><span>Java</span><span>Spring Boot</span><span>Spring Data JPA</span><span>Kafka</span><span>Debezium</span><span>Spring Security · OAuth 2.0 · JWT</span><span>Prometheus</span><span>Grafana</span><span>Docker</span><span>Kubernetes</span><span>AWS</span></div>
+    </div>
+
+    <header style="margin-top:12px"><span class="label">More projects</span></header>
+    <div class="projects">
+      <article class="proj">
+        <span class="label">Jan 2026 – present</span>
+        <h3>Hospital Management System: Pharmacy Microservice</h3>
+        <ul>
+          <li>REST APIs for inventory, prescriptions, billing and stock, integrated with Patient, Doctor and Billing services.</li>
+          <li>Entity relationships modeled with Spring Data JPA.</li>
+          <li>High test coverage with JUnit and Mockito; technical debt reduced using SonarQube and PMD.</li>
+        </ul>
+        <div class="stack"><span>Spring Boot</span><span>JPA</span><span>JUnit</span><span>Mockito</span></div>
+      </article>
+      <article class="proj">
+        <span class="label">Jan 2024 – Oct 2025</span>
+        <h3>E-Retail Platform</h3>
+        <ul>
+          <li>Spring Boot microservices and a Spring MVC storefront with products, authentication and CRUD.</li>
+          <li>Real-time streaming with Kafka Streams, monitored in Prometheus and Grafana.</li>
+          <li>Jenkins and GitLab CI/CD pipelines cut deployment time by 40%.</li>
+        </ul>
+        <div class="stack"><span>Kafka Streams</span><span>MySQL</span><span>MongoDB</span><span>Jenkins</span></div>
+      </article>
+      <article class="proj">
+        <span class="label">MS capstone · 2023</span>
+        <h3>Parental Support System</h3>
+        <ul>
+          <li>Flask and MySQL web app with role-based authentication.</li>
+          <li>Dashboards for academic tracking, activities, reading logs and screen time.</li>
+        </ul>
+        <div class="stack"><span>Python</span><span>Flask</span><span>MySQL</span></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="skills">
+    <header><span class="label">Toolbox</span><h2>Technical skills</h2></header>
+    <dl class="skills">
+      <div class="skill"><dt>Languages</dt><dd>Java (Core &amp; Advanced), Python, SQL</dd></div>
+      <div class="skill"><dt>Frameworks</dt><dd>Spring Boot, Spring MVC, Data JPA, Security, Cloud, Spring AI, Hibernate, Flask</dd></div>
+      <div class="skill"><dt>Streaming &amp; CDC</dt><dd>Apache Kafka, Kafka Streams, Kafka Connect, Debezium</dd></div>
+      <div class="skill"><dt>Security</dt><dd>OAuth 2.0, JWT, computer security fundamentals</dd></div>
+      <div class="skill"><dt>Cloud &amp; DevOps</dt><dd>AWS, Docker, Kubernetes, Jenkins, GitLab CI/CD, Maven</dd></div>
+      <div class="skill"><dt>Databases</dt><dd>MySQL, MongoDB; query tuning, indexing, pagination</dd></div>
+      <div class="skill"><dt>Testing &amp; quality</dt><dd>JUnit, Mockito, SonarQube, PMD</dd></div>
+      <div class="skill"><dt>Monitoring</dt><dd>Prometheus, Grafana, Log4j</dd></div>
+      <div class="skill"><dt>AI</dt><dd>Spring AI, Claude, GitHub Copilot, Cursor, Gemini</dd></div>
+      <div class="skill"><dt>Tools</dt><dd>IntelliJ IDEA, VS Code, Eclipse, Tomcat, IBM WebSphere</dd></div>
+    </dl>
+  </section>
+
+  <section id="journey">
+    <header><span class="label">Journey</span><h2>From the classroom to production code</h2></header>
+    <ol class="journey">
+      <li><span class="when">2024 – now</span><div><h3>Building backend systems</h3><p>Hands-on Spring Boot, Kafka and AWS projects, including the event-driven shipment platform above.</p></div></li>
+      <li><span class="when">2023</span><div><h3>M.S., Software Engineering (AI specialization)</h3><div class="where">International Technological University, San Jose · GPA 3.93</div></div></li>
+      <li><span class="when">2016 – 2023</span><div><h3>Career break and continuous learning</h3><p>Moved to the US in 2015 on a dependent visa and was not eligible to work until receiving work authorization in 2020. Full-time family caregiver while keeping Java, microservices, Kafka and AWS skills current, then returned to graduate study.</p></div></li>
+      <li><span class="when">2008 – 2015</span><div><h3>Professor, Computer Engineering</h3><div class="where">MIT College of Engineering, Pune, India</div>
+        <ul>
+          <li>Taught Java Programming, Relational Database Systems, System Programming and Computer Security.</li>
+          <li>Designed Java and SQL labs and reviewed student code for correctness and quality.</li>
+          <li>Guided student teams from requirements through design, implementation and testing.</li>
+          <li>Ran workshops on Java, Spring, REST APIs and databases for 100+ students.</li>
+          <li>Authored the textbook <em>Cryptography and Network Security</em> (Vision Publication).</li>
+        </ul></div></li>
+      <li><span class="when">2007</span><div><h3>B.E., Computer Engineering</h3><div class="where">MIT College of Engineering, Pune, India</div></div></li>
+    </ol>
+
+    <div class="pub">
+      <span class="label">Published author</span>
+      <h3><em>Cryptography and Network Security</em></h3>
+      <p>Textbook published by Vision Publication, written while teaching computer security to engineering students.</p>
+    </div>
+
+    <div class="edge">
+      <div><h4>Explains clearly</h4><p>Years of teaching mean I can walk a teammate, a reviewer or a stakeholder through a complex design.</p></div>
+      <div><h4>Reviews carefully</h4><p>I have read and graded thousands of programs, so I look for edge cases and readable code by habit.</p></div>
+      <div><h4>Learns fast</h4><p>I picked up Kafka, CDC, Kubernetes and Spring AI on my own and shipped working systems with them.</p></div>
+    </div>
+  </section>
+
+  <section id="contact" style="border-top:0">
+    <div class="contact">
+      <span class="label" style="color:inherit;opacity:.7">Contact</span>
+      <h2>Hiring a Java backend developer?</h2>
+      <p>I'm based in Fremont, CA, open to Bay Area and remote roles, and authorized to work in the US with no sponsorship needed.</p>
+      <div class="rowc">
+        <span class="addr" id="email">shrdes.2008@gmail.com</span>
+        <button class="btn" id="copy" type="button">Copy email</button>
+        <a class="btn ghost" href="https://www.linkedin.com/in/shraddha-kulkarni-2247881b" target="_blank" rel="noopener">LinkedIn</a>
+        <span class="toast" id="toast" aria-live="polite"></span>
+      </div>
+    </div>
+  </section>
+
+  <footer>© 2026 Shraddha Kulkarni · Fremont, CA</footer>
+</div>
+
+<script>
+document.getElementById('copy').addEventListener('click', function(){
+  var t=document.getElementById('toast'), txt=document.getElementById('email').textContent;
+  function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById('email'));var s=getSelection();s.removeAllRanges();s.addRange(r);t.textContent='Selected. Press Ctrl+C or ⌘C to copy.';}
+  try{navigator.clipboard.writeText(txt).then(function(){t.textContent='Email copied';},sel);}catch(e){sel();}
+});
+(function(){
+  var c=document.getElementById('net'); if(!c) return;
+  var x=c.getContext('2d'), nodes=[], links=[], pulses=[], W=0, H=0, dpr=Math.min(devicePixelRatio||1,2);
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var layers=[4,6,7,6,3];
+  function col(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  function build(){
+    var r=c.getBoundingClientRect(); W=r.width; H=r.height;
+    c.width=W*dpr; c.height=H*dpr; x.setTransform(dpr,0,0,dpr,0,0);
+    nodes=[]; links=[];
+    layers.forEach(function(n,li){
+      for(var i=0;i<n;i++){
+        nodes.push({l:li,x:W*(0.12+0.76*li/(layers.length-1)),y:H*(0.12+0.68*(i+0.5)/n),p:Math.random()*6.28});
+      }
+    });
+    nodes.forEach(function(a){nodes.forEach(function(b){ if(b.l===a.l+1 && Math.random()<0.6) links.push([a,b]); });});
+  }
+  function spawn(){ var k=links[Math.floor(Math.random()*links.length)]; if(k) pulses.push({k:k,t:0,s:0.006+Math.random()*0.01,w:Math.random()<0.15}); }
+  function draw(t){
+    var acc=col('--accent'), warn=col('--warn'), line=col('--line'), ink=col('--ink');
+    x.clearRect(0,0,W,H);
+    x.lineWidth=1; x.strokeStyle=line;
+    links.forEach(function(k){x.beginPath();x.moveTo(k[0].x,k[0].y);x.lineTo(k[1].x,k[1].y);x.stroke();});
+    pulses.forEach(function(p){
+      p.t+=p.s; var a=p.k[0],b=p.k[1], px=a.x+(b.x-a.x)*p.t, py=a.y+(b.y-a.y)*p.t;
+      x.strokeStyle=p.w?warn:acc; x.globalAlpha=0.9; x.lineWidth=2;
+      var tx=a.x+(b.x-a.x)*Math.max(0,p.t-0.18), ty=a.y+(b.y-a.y)*Math.max(0,p.t-0.18);
+      x.beginPath();x.moveTo(tx,ty);x.lineTo(px,py);x.stroke();
+      x.fillStyle=p.w?warn:acc; x.beginPath();x.arc(px,py,2.6,0,6.28);x.fill(); x.globalAlpha=1;
+      if(p.t>=1){ b.p=t/600; var nx=links.filter(function(k){return k[0]===b;}); if(nx.length&&Math.random()<0.75) pulses.push({k:nx[Math.floor(Math.random()*nx.length)],t:0,s:p.s,w:p.w}); }
+    });
+    pulses=pulses.filter(function(p){return p.t<1;});
+    nodes.forEach(function(n){
+      var g=0.5+0.5*Math.sin(t/900+n.p);
+      x.fillStyle=acc; x.globalAlpha=0.12+0.18*g; x.beginPath(); x.arc(n.x,n.y,11+4*g,0,6.28); x.fill();
+      x.globalAlpha=1; x.fillStyle=col('--surface'); x.strokeStyle=acc; x.lineWidth=1.6;
+      x.beginPath(); x.arc(n.x,n.y,5.5,0,6.28); x.fill(); x.stroke();
+    });
+    x.fillStyle=ink; x.globalAlpha=0.55; x.font='11px "JetBrains Mono", monospace';
+    ['input','embed','attend','reason','output'].forEach(function(lb,i){ x.fillText(lb, W*(0.12+0.76*i/(layers.length-1))-14, H*0.07); });
+    x.globalAlpha=1;
+  }
+  function loop(t){ if(Math.random()<0.08 && pulses.length<40) spawn(); draw(t); requestAnimationFrame(loop); }
+  build(); addEventListener('resize',build);
+  if(reduce){ for(var i=0;i<14;i++){spawn(); pulses[i].t=Math.random()*0.9;} draw(0); }
+  else { for(var j=0;j<10;j++) spawn(); requestAnimationFrame(loop); }
+})();
+</script>
+
+</body>
+</html>
